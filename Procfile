@@ -1,1 +1,1 @@
-web: gunicorn imquarantine.wsgi
+web: gunicorn imquarantined.wsgi
