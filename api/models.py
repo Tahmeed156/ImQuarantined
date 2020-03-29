@@ -45,6 +45,15 @@ class Location (models.Model):
     last_updated = models.DateTimeField(editable=True)
     start_time = models.DateTimeField(editable=True)
 
+    def check_quarantine(self, loc):
+        if abs(int(self.latitude * 10000) - int(loc['lat'] * 10000)) > 15:
+            return False
+        if abs(int(self.longitude * 10000) - int(loc['long'] * 10000)) > 15:
+            return False
+        # if abs(int(self.altitude * 10000) - int(loc['alti'] * 10000)) > 15:
+        #     return False
+        return True
+
     def save(self, *args, **kwargs):
         if not self.last_updated:
             self.last_updated = timezone.now()

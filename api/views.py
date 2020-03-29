@@ -134,10 +134,9 @@ class UpdateLocation(APIView):
         locations_string = request.POST['locations']
         locations = json.loads(locations_string)
         for count, loc in enumerate(locations):
-            # changed = quarantine_or_not(loc, player.location)
-            changed = True
+            quarantine = player.location.check_quarantine(loc)
             new_loc = Location.objects.get(player=player)
-            if changed:
+            if not quarantine:
                 new_loc.latitude = loc['lat']
                 new_loc.longitude = loc['long']
                 new_loc.altitude = loc['alti']
