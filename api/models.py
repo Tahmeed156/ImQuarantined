@@ -46,6 +46,10 @@ class Location (models.Model):
     start_time = models.DateTimeField(editable=True)
 
     def check_quarantine(self, loc):
+
+        if self.latitude == None and self.longitude == None and self.altitude == None:
+            return True
+
         if abs(int(self.latitude * 10000) - int(loc['lat'] * 10000)) > 15:
             return False
         if abs(int(self.longitude * 10000) - int(loc['long'] * 10000)) > 15:

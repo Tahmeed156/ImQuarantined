@@ -140,12 +140,13 @@ class UpdateLocation(APIView):
                 new_loc.latitude = loc['lat']
                 new_loc.longitude = loc['long']
                 new_loc.altitude = loc['alti']
-                new_loc.start_time = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
+                print("TIME:",loc['date_time'])
+                new_loc.start_time = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
                 response['success'] = False
                 if response['data']['failed_at'] == '':
                     response['data']['failed_at'] = loc['date_time']
 
-            new_loc.last_updated = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
+            new_loc.last_updated = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
             new_loc.save()
 
         return Response(response)
