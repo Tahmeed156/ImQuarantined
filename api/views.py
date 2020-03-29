@@ -164,7 +164,7 @@ class Leaderboard(APIView):
 
         score_arr = Score.objects.order_by('-total_points').all()[:5]
         response['data']['top'] = []
-        for score in score_arr:
+        for position, score in enumerate(score_arr):
             new_score = {
                 'id': score.player.id,
                 'user_name': score.player.user_name,
@@ -174,7 +174,8 @@ class Leaderboard(APIView):
                 'days_quarantined': str(score.days_quarantined),
                 'highest_streak': str(score.highest_streak),
                 'last_updated': str(score.player.location.last_updated),
-                'is_user': True if score.player.fire_token == id_token else False
+                'is_user': True if score.player.fire_token == id_token else False,
+                'position': position
             }
             response['data']['top'].append(new_score)
 
