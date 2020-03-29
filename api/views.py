@@ -43,7 +43,7 @@ class HomeScreen(APIView):
                 'min': (secs // 60) % 60,
                 'sec': secs % 60,
                 'cur_streak': str(player.score.cur_streak),
-                'progress': str(int(secs*100/86400)),
+                'progress': str(100 - int(secs*100/86400)),
             }
         else:
             response['success'] = False
