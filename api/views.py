@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
@@ -15,6 +16,41 @@ from .models import Player, Location, Score
 import firebase_admin
 from firebase_admin import auth
 from firebase_admin import credentials
+
+
+class HomeScreen(APIView):
+
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def get(request):
+        response = {
+            "success": True,
+            'message': '',
+            'data': {}
+        }
+
+        token_string = request.META['HTTP_AUTHORIZATION']
+        id_token = token_string.split()[1]
+        player = Player.objects.filter(fire_token=id_token).first()
+
+        if player is not None:
+            time_diff = player.location.last_updated - player.location.start_time
+            secs = time_diff.seconds
+            response['data'] = {
+                'hr': (secs // 3600),
+                'min': (secs // 60) % 60,
+                'sec': secs % 60,
+                'cur_streak': str(player.score.cur_streak),
+                'progress': str(int(secs*100/86400)),
+            }
+        else:
+            response['success'] = False
+            response['message'] = 'No user has this id token'
+            response['data']['id_token'] = id_token
+
+        return Response(response)
 
 
 class PlayerLogin(APIView):
@@ -86,23 +122,32 @@ class UpdateLocation(APIView):
     def post(request):
         response = {
             "success": True,
-            'message': 'Still at home',
-            'data': {}
+            'message': '',
+            'data': {
+                'failed_at': ''
+            }
         }
+        token_string = request.META['HTTP_AUTHORIZATION']
+        id_token = token_string.split()[1]
+        player = Player.objects.get(fire_token=id_token)
 
         locations_string = request.POST['locations']
         locations = json.loads(locations_string)
         for count, loc in enumerate(locations):
-            lat = loc['lat']
-            long = loc['long']
-            alti = loc['alti']
-            new_loc = Location(
-                latitude=loc['lat'],
-                longitude=loc['long'],
-                altitude=loc['alti']
-            )
-            # new_loc.save()
-            response['data'][count] = loc
+            # changed = quarantine_or_not(loc, player.location)
+            changed = True
+            new_loc = Location.objects.get(player=player)
+            if changed:
+                new_loc.latitude = loc['lat']
+                new_loc.longitude = loc['long']
+                new_loc.altitude = loc['alti']
+                new_loc.start_time = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
+                response['success'] = False
+                if response['data']['failed_at'] == '':
+                    response['data']['failed_at'] = loc['date_time']
+
+            new_loc.last_updated = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
+            new_loc.save()
 
         return Response(response)
 

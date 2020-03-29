@@ -7,6 +7,7 @@ router = routers.DefaultRouter()
 router.register('players', views.PlayersViewSet)
 
 urlpatterns = [
+    path('', views.HomeScreen.as_view(), name='home-screen'),
     path('auth', views.PlayerLogin.as_view(), name='player-login'),
     path('location/update', views.UpdateLocation.as_view(), name='location-update'),
     path('profile', views.PlayerProfile.as_view(), name='profile'),
