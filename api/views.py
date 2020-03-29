@@ -3,6 +3,7 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from imquarantined.settings import BASE_DIR
 from .serializers import PlayerSerializer
 from .models import Player
 
@@ -12,7 +13,7 @@ from firebase_admin import credentials
 
 
 def index(request):
-    cred = credentials.Certificate("/media/tmdfx/Stuff/Code/imquarantined/imquarantined-firebase.json")
+    cred = credentials.Certificate(BASE_DIR + "imquarantined-firebase.json")
     default_app = firebase_admin.initialize_app(cred, name='Firebaseeee')
 
     # Creating a custom_token
@@ -43,7 +44,7 @@ class PlayerLogin(APIView):
         id_token = request.POST['id_token']
 
         # Setting up firebase_app
-        cred = credentials.Certificate("/media/tmdfx/Stuff/Code/imquarantined/imquarantined-firebase.json")
+        cred = credentials.Certificate(BASE_DIR + "imquarantined-firebase.json")
         firebase = firebase_admin.initialize_app(cred, name='firebase')
 
         # Verifying an id_token
@@ -60,7 +61,8 @@ class PlayerLogin(APIView):
                 'photo': user.photo_url,
                 'phone': user.phone_number,
                 'name': user.display_name,
-                'email': user.email
+                'email': user.email,
+                'base': BASE_DIR
             }
         }
         return Response(response)
