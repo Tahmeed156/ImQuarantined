@@ -4,14 +4,15 @@ from rest_framework import routers
 from . import views
 
 router = routers.DefaultRouter()
-router.register('players', views.PlayersViewset)
+router.register('players', views.PlayersViewSet)
 
 urlpatterns = [
 
     path('', views.index, name='index'),
 
     # login
-    path('login', views.PlayerLogin.asView(), name='player-login'),
+    path('auth', views.PlayerLogin.as_view(), name='player-login'),
+    path('location/update', views.UpdateLocation.as_view(), name='location-update'),
 
     path('models/', include(router.urls))
 ]
