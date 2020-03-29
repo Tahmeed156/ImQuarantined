@@ -1,21 +1,20 @@
 import json
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError
 from django.http import HttpResponse
+from firebase_admin.auth import ExpiredIdTokenError
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from imquarantined.settings import BASE_DIR
 from .serializers import PlayerSerializer
-from .models import Player, Location
+from .models import Player, Location, Score
 
 import firebase_admin
 from firebase_admin import auth
 from firebase_admin import credentials
-
-
-def index(request):
-    return HttpResponse(f'wow')
 
 
 class PlayerLogin(APIView):
@@ -25,9 +24,11 @@ class PlayerLogin(APIView):
 
     @staticmethod
     def post(request):
-        message = ''
-        success = True
-        data = {}
+        response = {
+            "success": True,
+            'message': 'Still at home',
+            'data': {}
+        }
 
         id_token = request.POST['id_token']
 
@@ -40,32 +41,44 @@ class PlayerLogin(APIView):
             decoded_token = auth.verify_id_token(id_token, firebase)
             uid = decoded_token['uid']
             user = auth.get_user(uid, firebase)
-            data = {
-                'id_token': id_token,
-                'uid': user.uid,
-                'photo': user.photo_url,
-                'phone': user.phone_number,
-                'name': user.display_name,
-                'email': user.email,
-                'base': BASE_DIR
-            }
-        except firebase_admin.auth.ExpiredIdTokenError:
-            success = False
-            message = 'Id Token Expired'
 
-        # Deleting app instance
-        firebase_admin.delete_app(firebase)
+            # Pushing user to database
+            player = Player(
+                user_name=user.display_name,
+                fire_token=id_token,
+                photo_url=user.photo_url
+            )
+            player.save()
+            print("Here 1")
 
-        response = {
-            "success": success,
-            'message': message,
-            'data': data
-        }
+            loc = Location(player=player)
+            score = Score(player=player)
+            print("Here 2")
+            loc.save()
+            score.save()
+            print("Here 3")
+
+            response['message'] = 'Successfully Authenticated User!'
+            response['data']['name'] = user.display_name
+
+        except ExpiredIdTokenError:
+            response['success'] = False
+            response['message'] = 'Id Token Expired'
+
+        except IntegrityError as e:
+            response['success'] = False
+            response['message'] = str(e)
+            response['data']['id_token'] = id_token
+
+        finally:
+            # Deleting app instance
+            firebase_admin.delete_app(firebase)
+
         return Response(response)
 
 
 class UpdateLocation(APIView):
-    
+
     # authentication_classes = [TokenAuthentication]
     # permission_classes = [IsAuthenticated]
 
@@ -90,6 +103,45 @@ class UpdateLocation(APIView):
             )
             # new_loc.save()
             response['data'][count] = loc
+
+        return Response(response)
+
+
+class PlayerProfile(APIView):
+
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def get(request):
+        response = {
+            "success": True,
+            'message': 'Obtained User Profile!',
+            'data': {}
+        }
+
+        token_string = request.META['HTTP_AUTHORIZATION']
+        id_token = token_string.split()[1]
+        player = Player.objects.filter(fire_token=id_token).first()
+        if player is not None:
+            response['data'] = {
+                'id': player.id,
+                'user_name': player.user_name,
+                'photo_url': player.photo_url,
+                'member_since': str(player.member_since),
+                'city': player.city,
+                'country': player.country,
+                'total_points': str(player.score.total_points),
+                'cur_streak': str(player.score.cur_streak),
+                'days_quarantined': str(player.score.days_quarantined),
+                'highest_streak': str(player.score.highest_streak),
+                'last_updated': str(player.location.last_updated),
+                'start_time': str(player.location.start_time),
+            }
+        else:
+            response['success'] = False
+            response['message'] = 'No user has this id token'
+            response['data']['id_token'] = id_token
 
         return Response(response)
 
