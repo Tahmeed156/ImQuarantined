@@ -59,7 +59,7 @@ class PlayerLogin(APIView):
             print("Here 3")
 
             response['message'] = 'Successfully Authenticated User!'
-            response['data']['name'] = user.display_name
+            response['data']['user_name'] = user.display_name
 
         except ExpiredIdTokenError:
             response['success'] = False
@@ -142,6 +142,41 @@ class PlayerProfile(APIView):
             response['success'] = False
             response['message'] = 'No user has this id token'
             response['data']['id_token'] = id_token
+
+        return Response(response)
+
+
+class Leaderboard(APIView):
+
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def get(request):
+        response = {
+            "success": True,
+            'message': 'Obtained User Profile!',
+            'data': {}
+        }
+
+        token_string = request.META['HTTP_AUTHORIZATION']
+        id_token = token_string.split()[1]
+
+        score_arr = Score.objects.order_by('-total_points').all()[:5]
+        response['data']['top'] = []
+        for score in score_arr:
+            new_score = {
+                'id': score.player.id,
+                'user_name': score.player.user_name,
+                'photo_url': score.player.photo_url,
+                'total_points': str(score.total_points),
+                'cur_streak': str(score.cur_streak),
+                'days_quarantined': str(score.days_quarantined),
+                'highest_streak': str(score.highest_streak),
+                'last_updated': str(score.player.location.last_updated),
+                'is_user': True if score.player.fire_token == id_token else False
+            }
+            response['data']['top'].append(new_score)
 
         return Response(response)
 

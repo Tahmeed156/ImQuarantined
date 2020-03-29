@@ -10,7 +10,7 @@ urlpatterns = [
     path('auth', views.PlayerLogin.as_view(), name='player-login'),
     path('location/update', views.UpdateLocation.as_view(), name='location-update'),
     path('profile', views.PlayerProfile.as_view(), name='profile'),
-    # path('leaderboard/', views.Leaderboard.as_view(), name='leaderboard'),
+    path('leaderboard/', views.Leaderboard.as_view(), name='leaderboard'),
 
     path('models/', include(router.urls))
 ]
