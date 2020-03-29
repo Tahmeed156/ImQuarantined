@@ -44,7 +44,7 @@ class PlayerLogin(APIView):
         id_token = request.POST['id_token']
 
         # Setting up firebase_app
-        cred = credentials.Certificate(BASE_DIR + "imquarantined-firebase.json")
+        cred = credentials.Certificate(BASE_DIR + "/imquarantined-firebase.json")
         firebase = firebase_admin.initialize_app(cred, name='firebase')
 
         # Verifying an id_token
