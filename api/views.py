@@ -13,7 +13,7 @@ from firebase_admin import credentials
 
 
 def index(request):
-    cred = credentials.Certificate(BASE_DIR + "imquarantined-firebase.json")
+    cred = credentials.Certificate(BASE_DIR + "/imquarantined-firebase.json")
     default_app = firebase_admin.initialize_app(cred, name='Firebaseeee')
 
     # Creating a custom_token
