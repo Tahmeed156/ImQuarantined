@@ -13,24 +13,7 @@ from firebase_admin import credentials
 
 
 def index(request):
-    cred = credentials.Certificate(BASE_DIR + "/imquarantined-firebase.json")
-    default_app = firebase_admin.initialize_app(cred, name='Firebaseeee')
-
-    # Creating a custom_token
-    uid = "CRqlOwGCj4ctUKULlFyNKXdkvC72"
-    additional_claims = {
-        "premiumAccount": True
-    }
-    custom_token = auth.create_custom_token(uid, additional_claims, app=default_app)
-
-    # Verifying an id_token
-    # decoded_token = auth.verify_id_token(id_token, default_app)
-    # uid = decoded_token['uid']
-
-    uid = 'CRqlOwGCj4ctUKULlFyNKXdkvC72'
-    user = auth.get_user(uid, default_app)
-
-    return HttpResponse(f'Fetched data from {user.user_metadata} - {user.display_name}, {user.email}, and also image {user.photo_url}')
+    return HttpResponse(f'wow')
 
 
 class PlayerLogin(APIView):
@@ -40,6 +23,9 @@ class PlayerLogin(APIView):
 
     @staticmethod
     def post(request):
+        message = ''
+        success = True
+        data = {}
 
         id_token = request.POST['id_token']
 
@@ -47,15 +33,12 @@ class PlayerLogin(APIView):
         cred = credentials.Certificate(BASE_DIR + "/imquarantined-firebase.json")
         firebase = firebase_admin.initialize_app(cred, name='firebase')
 
-        # Verifying an id_token
-        decoded_token = auth.verify_id_token(id_token, firebase)
-        uid = decoded_token['uid']
-        user = auth.get_user(uid, firebase)
-
-        response = {
-            "success": True,
-            'message': 'Working on it!',
-            'data': {
+        try:
+            # Verifying an id_token
+            decoded_token = auth.verify_id_token(id_token, firebase)
+            uid = decoded_token['uid']
+            user = auth.get_user(uid, firebase)
+            data = {
                 'id_token': id_token,
                 'uid': user.uid,
                 'photo': user.photo_url,
@@ -64,6 +47,17 @@ class PlayerLogin(APIView):
                 'email': user.email,
                 'base': BASE_DIR
             }
+        except firebase_admin.auth.ExpiredIdTokenError:
+            success = False
+            message = 'Id Token Expired'
+
+        # Deleting app instance
+        firebase_admin.delete_app(firebase)
+
+        response = {
+            "success": success,
+            'message': message,
+            'data': data
         }
         return Response(response)
 
