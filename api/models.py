@@ -30,6 +30,8 @@ class Score (models.Model):
     cur_streak = models.PositiveIntegerField(default=0)
     days_quarantined = models.PositiveIntegerField(default=0)
     highest_streak = models.PositiveIntegerField(default=0)
+    confirmations_today = models.PositiveIntegerField(default=0)
+    last_confirmed = models.DateTimeField(editable=True, default=timezone.now())
 
     def __str__(self):
         return self.player.user_name + ".score:" + str(self.total_points)
@@ -47,11 +49,8 @@ class Location (models.Model):
     start_time = models.DateTimeField(editable=True)
 
     def check_quarantine(self, loc):
-
-        if not self.latitude or not self.longitude or not self.altitude:
-            # Initial case - no data present
+        if self.latitude == None and self.longitude == None and self.altitude == None:
             return True
-
         if abs(int(self.latitude * 10000) - int(loc['lat'] * 10000)) > 15:
             return False
         if abs(int(self.longitude * 10000) - int(loc['long'] * 10000)) > 15:

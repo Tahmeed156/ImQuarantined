@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db import IntegrityError
 from firebase_admin.auth import ExpiredIdTokenError
@@ -132,31 +132,45 @@ class UpdateLocation(APIView):
         player = Player.objects.get(fire_token=id_token)
 
         locations_string = request.POST['locations']
-        locations = json.loads(locations_string)
+        loc_arr = json.loads(locations_string)
 
-        for count, loc in enumerate(locations):
+        for count, loc in enumerate(loc_arr):
             quarantine = player.location.check_quarantine(loc)
-            new_time = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
+            new_time = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
 
             if not quarantine:
                 # Renew location and timing attributes
                 player.location.latitude = loc['lat']
                 player.location.longitude = loc['long']
                 player.location.altitude = loc['alti']
-                print("TIME:", loc['date_time'])
                 player.location.start_time = new_time
+
+                # Return failed status & first failure time
                 response['success'] = False
                 if response['data']['failed_at'] == '':
                     response['data']['failed_at'] = loc['date_time']
+
                 player.score.cur_streak = 0
+                player.score.confirmations_today = 0
             else:
-                # Checking score changes
-                time_diff = new_time - player.location.start_time
+                # Checking if score will increase
+                time_diff = new_time - player.location.start_time.replace(tzinfo=None)
                 if time_diff.seconds > 86400 * (player.score.cur_streak + 1):
-                    # another day passed
+                    # Another day has passed!
                     player.score.cur_streak += 1
                     player.score.total_points += 50 + (10 * player.score.cur_streak)
                     player.score.days_quarantined += 1
+
+                    if player.score.confirmations_today < 3:
+                        player.score.total_points += 0
+                    if player.score.confirmations_today < 5:
+                        player.score.total_points += 30
+                    elif player.score.confirmations_today < 10:
+                        player.score.total_points += 60
+                    else:
+                        player.score.total_points += 100
+                    player.score.confirmations_today = 0
+
                     if player.score.cur_streak > player.score.highest_streak:
                         player.score.highest_streak = player.score.cur_streak
                     player.score.save()
@@ -164,6 +178,42 @@ class UpdateLocation(APIView):
             player.location.last_updated = new_time
             player.location.save()
             player.score.save()
+
+        return Response(response)
+
+
+class PlayerConfirmation(APIView):
+
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def get(request):
+        response = {
+            "success": True,
+            'message': 'New confirmation added!',
+            'data': {}
+        }
+
+        token_string = request.META['HTTP_AUTHORIZATION']
+        id_token = token_string.split()[1]
+        player = Player.objects.filter(fire_token=id_token).first()
+
+        time_string = request.POST['date-time']
+        new_time = datetime.strptime(time_string, "%d/%m/%Y %H:%M:%S")
+        time_diff = new_time - player.score.last_confirmed
+
+        if time_diff.seconds > 3600:
+            player.score.confirmations_today += 1
+            player.score.last_confirmed = new_time
+            player.score.save()
+        else:
+            response['success'] = False
+            response['message'] = 'New Confirmation Not Possible'
+            response['data']['time_passed'] = {
+                'min': (time_diff.seconds // 60) % 60,
+                'sec': time_diff.seconds % 60
+            }
 
         return Response(response)
 
