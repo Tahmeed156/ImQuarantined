@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 
+import pytz
 from django.db import IntegrityError
 from firebase_admin.auth import ExpiredIdTokenError
 from rest_framework import viewsets
@@ -77,7 +78,7 @@ class PlayerLogin(APIView):
             user = auth.get_user(uid, firebase)
 
             # Pushing user to database
-            player = Player.objects.get(fire_uid=uid)
+            player = Player.objects.filter(fire_uid=uid).first()
             if not player:
                 # Doesn't exist, create new one
                 player = Player(
@@ -136,7 +137,9 @@ class UpdateLocation(APIView):
 
         for count, loc in enumerate(loc_arr):
             quarantine = player.location.check_quarantine(loc)
-            new_time = datetime.strptime(loc['date_time'], "%m/%d/%Y %H:%M:%S")
+            local_tz = pytz.timezone("UTC")
+            utc_dt = datetime.utcfromtimestamp(loc['date_time']).replace(tzinfo=pytz.utc)
+            new_time = local_tz.normalize(utc_dt.astimezone(local_tz))
 
             if not quarantine:
                 # Renew location and timing attributes
@@ -154,7 +157,7 @@ class UpdateLocation(APIView):
                 player.score.confirmations_today = 0
             else:
                 # Checking if score will increase
-                time_diff = new_time - player.location.start_time.replace(tzinfo=None)
+                time_diff = new_time - player.location.start_time
                 if time_diff.seconds > 86400 * (player.score.cur_streak + 1):
                     # Another day has passed!
                     player.score.cur_streak += 1
