@@ -5,6 +5,7 @@ from django.utils import timezone
 class Player (models.Model):
     user_name = models.CharField(max_length=128, blank=False, null=False)
     fire_token = models.CharField(max_length=2048, blank=False, null=False, unique=True)
+    fire_uid = models.CharField(max_length=128, blank=False, null=False, unique=True)
     photo_url = models.CharField(max_length=256, blank=True, null=True)
 
     member_since = models.DateTimeField(editable=True)
@@ -17,7 +18,7 @@ class Player (models.Model):
         return super(Player, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.user_name + ":" + self.city + ":" + self.fire_token
+        return self.user_name + ":" + self.fire_uid
 
     class Meta:
         verbose_name_plural = "Players"

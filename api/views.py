@@ -1,9 +1,7 @@
 import json
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-from django.http import HttpResponse
 from firebase_admin.auth import ExpiredIdTokenError
 from rest_framework import viewsets
 from rest_framework.views import APIView
@@ -79,20 +77,22 @@ class PlayerLogin(APIView):
             user = auth.get_user(uid, firebase)
 
             # Pushing user to database
-            player = Player(
-                user_name=user.display_name,
-                fire_token=id_token,
-                photo_url=user.photo_url
-            )
+            player = Player.objects.get(fire_uid=uid)
+            if not player:
+                # Doesn't exist, create new one
+                player = Player(
+                    user_name=user.display_name,
+                    fire_uid=uid,
+                    photo_url=user.photo_url
+                )
+            # Updating token, regardless of user existence
+            player.fire_token = id_token
             player.save()
-            print("Here 1")
 
             loc = Location(player=player)
             score = Score(player=player)
-            print("Here 2")
             loc.save()
             score.save()
-            print("Here 3")
 
             response['message'] = 'Successfully Authenticated User!'
             response['data']['user_name'] = user.display_name
