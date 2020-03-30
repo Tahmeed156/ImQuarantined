@@ -133,21 +133,37 @@ class UpdateLocation(APIView):
 
         locations_string = request.POST['locations']
         locations = json.loads(locations_string)
+
         for count, loc in enumerate(locations):
             quarantine = player.location.check_quarantine(loc)
-            new_loc = Location.objects.get(player=player)
+            new_time = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
+
             if not quarantine:
-                new_loc.latitude = loc['lat']
-                new_loc.longitude = loc['long']
-                new_loc.altitude = loc['alti']
-                print("TIME:",loc['date_time'])
-                new_loc.start_time = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
+                # Renew location and timing attributes
+                player.location.latitude = loc['lat']
+                player.location.longitude = loc['long']
+                player.location.altitude = loc['alti']
+                print("TIME:", loc['date_time'])
+                player.location.start_time = new_time
                 response['success'] = False
                 if response['data']['failed_at'] == '':
                     response['data']['failed_at'] = loc['date_time']
+                player.score.cur_streak = 0
+            else:
+                # Checking score changes
+                time_diff = new_time - player.location.start_time
+                if time_diff.seconds > 86400 * (player.score.cur_streak + 1):
+                    # another day passed
+                    player.score.cur_streak += 1
+                    player.score.total_points += 50 + (10 * player.score.cur_streak)
+                    player.score.days_quarantined += 1
+                    if player.score.cur_streak > player.score.highest_streak:
+                        player.score.highest_streak = player.score.cur_streak
+                    player.score.save()
 
-            new_loc.last_updated = datetime.strptime(loc['date_time'], "%d/%m/%Y %H:%M:%S")
-            new_loc.save()
+            player.location.last_updated = new_time
+            player.location.save()
+            player.score.save()
 
         return Response(response)
 

@@ -48,7 +48,8 @@ class Location (models.Model):
 
     def check_quarantine(self, loc):
 
-        if self.latitude == None and self.longitude == None and self.altitude == None:
+        if not self.latitude or not self.longitude or not self.altitude:
+            # Initial case - no data present
             return True
 
         if abs(int(self.latitude * 10000) - int(loc['lat'] * 10000)) > 15:
@@ -66,8 +67,7 @@ class Location (models.Model):
         return super(Location, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.player.user_name + ".location:" + \
-               str(self.latitude) + ',' + str(self.longitude) + ', ' + str(self.altitude)
+        return self.player.user_name + ".location"
 
     class Meta:
         verbose_name_plural = 'Locations'
