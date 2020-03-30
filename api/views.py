@@ -37,10 +37,11 @@ class HomeScreen(APIView):
         if player is not None:
             time_diff = player.location.last_updated - player.location.start_time
             secs = time_diff.seconds
+            reverse_secs = 86400 - secs
             response['data'] = {
-                'hr': (secs // 3600),
-                'min': (secs // 60) % 60,
-                'sec': secs % 60,
+                'hr': (reverse_secs // 3600),
+                'min': (reverse_secs // 60) % 60,
+                'sec': reverse_secs % 60,
                 'cur_streak': str(player.score.cur_streak),
                 'progress': str(int(secs*100/86400)),
             }

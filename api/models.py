@@ -61,8 +61,8 @@ class Location (models.Model):
 
     def save(self, *args, **kwargs):
         if not self.last_updated:
-            self.last_updated = timezone.now()
             self.start_time = timezone.now()
+            self.last_updated = timezone.now()
         return super(Location, self).save(*args, **kwargs)
 
     def __str__(self):
