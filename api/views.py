@@ -158,7 +158,7 @@ class UpdateLocation(APIView):
             else:
                 # Checking if score will increase
                 time_diff = new_time - player.location.start_time
-                if time_diff.seconds > 86400 * (player.score.cur_streak + 1):
+                if time_diff.seconds > 180 * (player.score.cur_streak + 1):
                     # Another day has passed!
                     player.score.cur_streak += 1
                     player.score.total_points += 50 + (10 * player.score.cur_streak)
